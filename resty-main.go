@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -32,7 +35,7 @@ func main() {
 	proxyTLSConfig := &tls.Config{
 		Certificates:       []tls.Certificate{clientCert}, // Client authentication
 		RootCAs:            caCertPool,                    // Trust the proxy's CA
-		ServerName:         "127.0.0.1",                   // ServerName for SNI (match the proxy's certificate's common name or SAN)
+		ServerName:         "localhost",                   // ServerName for SNI (match the proxy's certificate's common name or SAN)
 		InsecureSkipVerify: false,                         // Ensure proper certificate validation
 	}
 
@@ -40,12 +43,24 @@ func main() {
 	client := resty.New()
 
 	// Set up the proxy
-	client.SetProxy("https://127.0.0.1:8080") // Use the same hostname as in ServerName
+	client.SetProxy("https://localhost:8080") // Use the same hostname as in ServerName
 
 	// Configure the transport to use custom TLS settings for the proxy
 	client.SetTransport(&http.Transport{
-		TLSClientConfig: proxyTLSConfig,
-		Proxy:           http.ProxyFromEnvironment, // Proxy will be set via client.SetProxy
+		Proxy: http.ProxyURL(mustParseURL("https://localhost:8080")),
+		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			conn, err := dialer.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			// Upgrade to a TLS connection using the custom proxy TLS config
+			tlsConn := tls.Client(conn, proxyTLSConfig)
+			if err := tlsConn.Handshake(); err != nil {
+				return nil, err
+			}
+			return tlsConn, nil
+		},
 	})
 
 	// Set timeout for requests
@@ -59,4 +74,13 @@ func main() {
 
 	// Print the response
 	fmt.Println(string(resp.Body()))
+}
+
+// mustParseURL parses a URL or panics if it fails.
+func mustParseURL(rawURL string) *url.URL {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		log.Fatalf("Invalid URL: %v", err)
+	}
+	return parsedURL
 }
