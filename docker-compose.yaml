@@ -1,0 +1,22 @@
+version: '3.7'
+services:
+  proxy:
+    image: proxy:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: proxy
+    ports:
+      - "8888:8888"
+    restart: always
+    entrypoint: "/usr/bin/tinyproxy -d"
+  stunnel:
+    image: stunnel:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: stunnel
+    ports:
+      - "8080:8080"
+    restart: always
+    entrypoint: "/usr/bin/stunnel"
