@@ -1,17 +1,14 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 )
 
 func main() {
@@ -20,7 +17,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to read CA certificate: %v", err)
 	}
-	caCertPool := x509.NewCertPool()
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		log.Fatalf("Failed to load system CA pool: %v", err)
+	}
+	if caCertPool == nil {
+		caCertPool = x509.NewCertPool()
+	}
 	if !caCertPool.AppendCertsFromPEM(caCert) {
 		log.Fatalf("Failed to append CA certificate")
 	}
@@ -31,30 +34,13 @@ func main() {
 		log.Fatalf("Failed to load client certificate and key: %v", err)
 	}
 
-	// Configure TLS settings for the proxy
-	proxyTLSConfig := &tls.Config{
-		Certificates:       []tls.Certificate{clientCert}, // Client authentication
-		RootCAs:            caCertPool,                    // Trust the proxy's CA
-		ServerName:         "localhost",                   // ServerName for SNI (match the proxy hostname)
-		InsecureSkipVerify: false,                         // Ensure proper certificate validation
-	}
-
 	// Create HTTPS client with proxy configuration
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(mustParseURL("https://localhost:8080")),
-			DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				dialer := &net.Dialer{Timeout: 10 * time.Second}
-				conn, err := dialer.DialContext(ctx, network, addr)
-				if err != nil {
-					return nil, err
-				}
-				// Upgrade to a TLS connection using the custom proxy TLS config
-				tlsConn := tls.Client(conn, proxyTLSConfig)
-				if err := tlsConn.Handshake(); err != nil {
-					return nil, err
-				}
-				return tlsConn, nil
+			TLSClientConfig: &tls.Config{
+				RootCAs:      caCertPool,
+				Certificates: []tls.Certificate{clientCert},
 			},
 		},
 	}

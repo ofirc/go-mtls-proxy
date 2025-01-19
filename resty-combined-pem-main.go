@@ -29,10 +29,14 @@ func main() {
 		log.Fatalf("Failed to append CA certificate")
 	}
 
-	// Load client certificate and key (used for client authentication)
-	clientCert, err := tls.LoadX509KeyPair("client.crt", "client.key")
+	// Load the combined client certificate and key (client.pem)
+	clientPem, err := os.ReadFile("client.pem")
 	if err != nil {
-		log.Fatalf("Failed to load client certificate and key: %v", err)
+		log.Fatalf("Failed to read client PEM file: %v", err)
+	}
+	clientCert, err := tls.X509KeyPair(clientPem, clientPem)
+	if err != nil {
+		log.Fatalf("Failed to load client certificate and key from PEM file: %v", err)
 	}
 
 	// Create a Resty client
