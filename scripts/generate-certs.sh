@@ -4,7 +4,7 @@
 CA_SUBJECT="/CN=TestCA"
 SERVER_SUBJECT="/CN=localhost"
 CLIENT_SUBJECT="/CN=client"
-SAN="subjectAltName=DNS:localhost,IP:127.0.0.1"
+SAN="subjectAltName=DNS:localhost,DNS:stunnel.default,IP:127.0.0.1"
 
 # Clean up old files
 rm -f ca.* server.* client.*

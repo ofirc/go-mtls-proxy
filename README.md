@@ -12,10 +12,12 @@ It differs from the above repo in the following ways:
 
 The project is meant for purely demonstration purposes, do not use it in production.
 
-To run:
+## Docker Compose
+Generate the certificates and build the container images:
 ```bash
 ./scripts/generate-certs.sh
 docker compose build
+# docker compose push
 docker compose up
 ```
 
@@ -36,4 +38,58 @@ $ curl --proxy https://localhost:8080 --proxy-cacert ca.crt --proxy-cert client.
 84.228.242.243
 $ go run main.go                                                                                                                     
 84.228.242.243
+```
+
+## Kubernetes
+Create a local kind cluster:
+```bash
+kind create cluster --name test-proxy
+```
+
+Deploy the resources to the cluster:
+```bash
+kubectl apply -f deploy
+```
+
+Copy the certificates from the Pod:
+```bash
+POD_NAME=$(kubectl get pod -oname -lapp=stunnel | cut -d'/' -f2)
+kubectl cp $POD_NAME:/client-certs/ca.crt ca.crt
+kubectl cp $POD_NAME:/client-certs/client.crt client.crt
+kubectl cp $POD_NAME:/client-certs/client.key client.key
+kubectl cp $POD_NAME:/client-certs/client.pem client.pem
+```
+
+Port forward the stunnel:
+```bash
+kubectl port-forward svc/stunnel 8080
+```
+
+And then on a separate shell:
+```bash
+go run main.go
+curl \
+  --proxy https://localhost:8080 \
+  --proxy-cacert ca.crt \
+  --proxy-cert client.crt \
+  --proxy-key client.key \
+  https://ipv4.icanhazip.com
+
+curl \
+  --proxy https://localhost:8080 \
+  --proxy-cacert ca.crt \
+  --proxy-cert client.pem \
+  https://ipv4.icanhazip.com
+```
+
+For example:
+```bash
+$ curl \
+  --proxy https://localhost:8080 \
+  --proxy-cacert ca.crt \
+  --proxy-cert client.crt \
+  --proxy-key client.key \
+  https://ipv4.icanhazip.com
+84.228.242.243
+$
 ```

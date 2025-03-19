@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   proxy:
-    image: proxy:latest
+    image: ofirc/proxy:latest
     build:
       context: ./
       dockerfile: Dockerfile
@@ -11,7 +11,7 @@ services:
     restart: always
     entrypoint: "/usr/bin/tinyproxy -d"
   stunnel:
-    image: stunnel:latest
+    image: ofirc/stunnel:latest
     build:
       context: ./
       dockerfile: Dockerfile
