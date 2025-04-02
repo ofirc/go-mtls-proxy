@@ -13,7 +13,7 @@ It differs from the above repo in the following ways:
 The project is meant for purely demonstration purposes, do not use it in production.
 
 # Related projects
-* [HTTP CONNECT forward proxy](https://github.com/ofirc/k8s-sniff-https) - useful for a simple HTTP(s) proxy that does not apply deep packet inspection
+* [HTTP CONNECT forward proxy](https://github.com/ofirc/k8s-http-proxy) - useful for a simple HTTP(s) proxy that does not apply deep packet inspection
 
 * [Man-in-the-middle TLS inspection proxy](https://github.com/ofirc/k8s-sniff-https) - useful for deep packet inspection and reverse engineering HTTPS encrypted traffic
 
